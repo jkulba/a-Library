@@ -1,0 +1,194 @@
+---
+title: Infrastructure Overview
+description: Network topology, server topology, cloud resources, and environment configurations for the Software Engineering Group.
+sidebar:
+  order: 1
+---
+
+import MermaidDiagram from '../../../components/MermaidDiagram.astro';
+
+# Infrastructure Overview
+
+This section documents the infrastructure architecture, network topology, cloud resources, and environment configurations for the platform. All infrastructure is managed as code using Terraform and deployed on AWS.
+
+## AWS Account Structure
+
+We use an **AWS Organizations** multi-account strategy to provide strong isolation between environments and workloads.
+
+| AWS Account | Purpose | Environment |
+|-------------|---------|------------|
+| `org-master` | Billing, SCPs, consolidated logging | Management |
+| `security-account` | GuardDuty, Security Hub, CloudTrail | Security |
+| `shared-services` | ECR, Transit Gateway, shared DNS | Shared |
+| `production` | Production workloads | Production |
+| `staging` | Staging/UAT workloads | Staging |
+| `development` | Developer environments | Development |
+| `sandbox` | Experimental workloads | Sandbox |
+
+---
+
+## Network Topology
+
+The following diagram shows our AWS network topology across the primary production environment.
+
+<MermaidDiagram chart={`
+graph TB
+    subgraph Internet
+        USER[👤 End Users]
+        PARTNER[🏦 Partner Systems]
+    end
+
+    subgraph AWS_Edge["AWS Edge / Global"]
+        CF[CloudFront CDN]
+        WAF[AWS WAF]
+        R53[Route 53 DNS]
+    end
+
+    subgraph VPC["Production VPC (10.0.0.0/16)"]
+        subgraph Public_Subnet["Public Subnets (10.0.0.0/20)"]
+            ALB[Application Load Balancer]
+            NAT1[NAT Gateway AZ-1]
+            NAT2[NAT Gateway AZ-2]
+        end
+
+        subgraph Private_App["Private App Subnets (10.0.16.0/20)"]
+            EKS[EKS Node Group]
+            API_GW[API Gateway VPC Link]
+        end
+
+        subgraph Private_Data["Private Data Subnets (10.0.32.0/20)"]
+            RDS[(RDS PostgreSQL Multi-AZ)]
+            REDIS[(ElastiCache Redis)]
+            DDB[(DynamoDB VPC Endpoint)]
+        end
+    end
+
+    subgraph AWS_Services["AWS Managed Services"]
+        SNS[SNS Topics]
+        SQS[SQS Queues]
+        S3[S3 Buckets]
+        KMS[KMS Keys]
+    end
+
+    USER -->|HTTPS| CF
+    PARTNER -->|HTTPS mTLS| ALB
+    CF --> WAF
+    WAF --> ALB
+    R53 --> CF
+    ALB --> API_GW
+    API_GW --> EKS
+    EKS --> RDS
+    EKS --> REDIS
+    EKS --> DDB
+    EKS --> SNS
+    SNS --> SQS
+    EKS --> S3
+    RDS --> KMS
+    S3 --> KMS
+`} />
+
+---
+
+## Environment Configurations
+
+### Production Environment
+
+| Resource | Type | Size | Count | Region |
+|----------|------|------|-------|--------|
+| EKS Cluster | Managed K8s | m5.xlarge nodes | 6-20 (auto-scale) | us-east-1 |
+| RDS PostgreSQL | Multi-AZ | db.r6g.2xlarge | 1 primary + 2 replicas | us-east-1 |
+| ElastiCache Redis | Cluster mode | cache.r6g.large | 3 nodes | us-east-1 |
+| ALB | Application LB | — | 2 (multi-AZ) | us-east-1 |
+| NAT Gateway | Managed NAT | — | 2 (per AZ) | us-east-1 |
+
+### Staging Environment
+
+Staging mirrors production at 30% capacity. It is used for pre-production validation and integration testing.
+
+### Development Environment
+
+Shared development environment for all engineers. Resource-limited to control costs.
+
+---
+
+## Kubernetes Architecture
+
+### Cluster Structure
+
+```
+EKS Cluster: prod-cluster
+├── System Namespace (kube-system, monitoring)
+│   ├── CoreDNS
+│   ├── AWS Load Balancer Controller
+│   ├── Cluster Autoscaler
+│   └── Prometheus + Grafana
+├── Platform Namespace
+│   ├── api-gateway (Kong)
+│   ├── auth-service
+│   └── notification-service
+├── Core-Banking Namespace
+│   ├── account-service
+│   └── payment-service
+└── Data Namespace
+    ├── audit-service
+    └── reporting-service
+```
+
+### Resource Limits (Production)
+
+| Tier | CPU Request | CPU Limit | Memory Request | Memory Limit |
+|------|------------|-----------|---------------|-------------|
+| Standard | 100m | 500m | 128Mi | 512Mi |
+| High | 500m | 2000m | 512Mi | 2Gi |
+| Critical | 1000m | 4000m | 1Gi | 4Gi |
+
+---
+
+## Observability Stack
+
+| Tool | Purpose | Dashboard |
+|------|---------|-----------|
+| Datadog | APM, infrastructure metrics, log aggregation | [Datadog](https://app.datadoghq.com) |
+| Prometheus + Grafana | Kubernetes metrics, custom dashboards | Internal |
+| AWS CloudWatch | AWS service metrics, alarms | AWS Console |
+| PagerDuty | Alerting and on-call routing | [PagerDuty](https://pagerduty.com) |
+| AWS CloudTrail | API audit logging | S3 + Athena |
+
+### Key Alerts
+
+| Alert | Threshold | Severity | Channel |
+|-------|-----------|---------|---------|
+| API error rate | > 1% | P1 | PagerDuty |
+| p99 latency | > 500ms | P2 | PagerDuty |
+| Pod OOM kills | > 0 | P2 | Slack |
+| RDS CPU | > 80% | P2 | PagerDuty |
+| Certificate expiry | < 30 days | P3 | Slack |
+
+---
+
+## Infrastructure as Code
+
+All infrastructure is managed using **Terraform** with a **GitOps** workflow. Changes to infrastructure must go through a pull request review process.
+
+```
+Repository Structure:
+infra-as-code/
+├── modules/          # Reusable Terraform modules
+│   ├── eks/
+│   ├── rds/
+│   └── networking/
+├── environments/
+│   ├── production/   # Production environment config
+│   ├── staging/      # Staging environment config
+│   └── development/  # Dev environment config
+└── global/           # Cross-environment resources (IAM, S3)
+```
+
+---
+
+## Related Documents
+
+- [Architecture Overview](/architecture/overview/)
+- [Security Overview](/security/overview/)
+- [Development Overview](/development/overview/)
+- [Runbooks](/runbooks/overview/)

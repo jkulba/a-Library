@@ -1,0 +1,28 @@
+/* Custom CSS for the Engineering Library documentation site */
+
+/* Mermaid diagram container */
+.mermaid-container {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Improve code block readability */
+.expressive-code {
+  margin: 1rem 0;
+}
+
+/* Category badge styles */
+.category-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: 600;
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-accent-high);
+}
