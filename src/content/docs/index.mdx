@@ -1,0 +1,34 @@
+---
+title: Welcome to a-Library
+description: Technical Documentation Library built with AstroJS and Starlight.
+template: splash
+hero:
+  tagline: A technical documentation library built with AstroJS Starlight.
+  actions:
+    - text: Get Started
+      link: /a-Library/guides/getting-started/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/jkulba/a-Library
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Features
+
+<CardGrid stagger>
+  <Card title="Documentation" icon="open-book">
+    Comprehensive technical documentation for your projects.
+  </Card>
+  <Card title="Fast & Modern" icon="rocket">
+    Built with AstroJS for fast page loads and great developer experience.
+  </Card>
+  <Card title="GitHub Pages" icon="github">
+    Automatically deployed to GitHub Pages on every push to the main branch.
+  </Card>
+  <Card title="Easy to Contribute" icon="pencil">
+    Work on the develop branch and merge to main to publish updates.
+  </Card>
+</CardGrid>
