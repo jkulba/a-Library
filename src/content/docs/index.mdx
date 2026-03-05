@@ -1,0 +1,36 @@
+---
+title: Welcome to a-Library
+description: A comprehensive technical documentation library built with Astro Starlight.
+draft: false
+template: splash
+hero:
+  title: Welcome to <span class="text-gradient">a-Library</span>
+  tagline: Your searchable technical documentation library. Find anything instantly.
+  actions:
+    - text: Get Started
+      link: /guides/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Quick Start
+      link: /guides/quick-start/
+      icon: rocket
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Explore the Library
+
+<CardGrid stagger>
+  <Card title="Getting Started" icon="open-book">
+    New to a-Library? Read the [Introduction](/guides/introduction/) and [Quick Start](/guides/quick-start/) to get up and running fast.
+  </Card>
+  <Card title="API Reference" icon="document">
+    Comprehensive [API Reference](/reference/api/) and [Configuration](/reference/configuration/) documentation for developers.
+  </Card>
+  <Card title="Tutorials" icon="rocket">
+    Step-by-step tutorials: [Build your first app](/tutorials/first-app/) or learn to [work with data](/tutorials/working-with-data/).
+  </Card>
+  <Card title="Full-text Search" icon="magnifier">
+    Press <kbd>/</kbd> or <kbd>Ctrl+K</kbd> to instantly search all content using the built-in Pagefind search engine.
+  </Card>
+</CardGrid>
