@@ -1,0 +1,225 @@
+---
+title: Runbooks Overview
+description: Operational procedures, incident response, and on-call guides for the Software Engineering Group.
+sidebar:
+  order: 1
+---
+
+import MermaidDiagram from '../../../components/MermaidDiagram.astro';
+
+# Runbooks Overview
+
+Runbooks document step-by-step operational procedures for the Software Engineering Group. All engineers who participate in on-call rotation must be familiar with these procedures.
+
+## On-Call Responsibilities
+
+### On-Call Rotation
+
+| Role | Rotation | Escalation |
+|------|---------|-----------|
+| **Primary On-Call** | Weekly rotation | First responder for all P1/P2 alerts |
+| **Secondary On-Call** | Weekly rotation (offset) | Backup if primary unavailable |
+| **Engineering Manager** | Monthly | Escalation for business impact decisions |
+| **SRE Lead** | 24/7 (shared) | Escalation for infrastructure-level issues |
+
+### Response Time SLAs
+
+| Priority | Description | Initial Response | Resolution Target |
+|----------|-------------|-----------------|-----------------|
+| **P1 – Critical** | Production outage, data loss risk | 5 minutes | 1 hour |
+| **P2 – High** | Significant degradation, major feature broken | 15 minutes | 4 hours |
+| **P3 – Medium** | Minor degradation, workaround available | 1 hour | 24 hours |
+| **P4 – Low** | Cosmetic issues, no user impact | Next business day | 1 week |
+
+---
+
+## Incident Response Procedure
+
+The following sequence diagram shows the standard incident response flow for a P1 production incident.
+
+<MermaidDiagram chart={`
+sequenceDiagram
+    participant Alert as 🚨 PagerDuty Alert
+    participant OnCall as 👤 On-Call Engineer
+    participant Slack as 💬 #incident-channel
+    participant Team as 👥 Incident Team
+    participant Mgr as 🧑‍💼 Eng. Manager
+    participant Postmortem as 📋 Post-Mortem
+
+    Alert->>OnCall: P1 Alert fires (SMS + Call)
+    OnCall->>OnCall: Acknowledge within 5 min
+    OnCall->>Slack: Create incident thread<br/>Post: severity, symptoms, initial hypothesis
+    OnCall->>OnCall: Begin triage & diagnosis
+
+    alt Resolved within 15 min
+        OnCall->>Slack: Post resolution & timeline
+        OnCall->>Postmortem: Schedule post-mortem (within 5 days)
+    else Needs additional help
+        OnCall->>Team: Page secondary on-call
+        Team->>Slack: Join incident thread
+        Team->>OnCall: Collaborate on diagnosis
+
+        alt Infrastructure Issue
+            Team->>Mgr: Notify Engineering Manager
+            Mgr->>Slack: Assess business impact
+        end
+
+        OnCall->>OnCall: Identify root cause
+        OnCall->>Slack: Post mitigation steps
+        Team->>OnCall: Execute remediation
+        OnCall->>Alert: Resolve in PagerDuty
+        OnCall->>Slack: Post resolution summary
+        OnCall->>Postmortem: Schedule post-mortem (mandatory for P1)
+    end
+`} />
+
+### Incident Severity Classification
+
+| Severity | Criteria | Examples |
+|----------|---------|---------|
+| **P1 – Critical** | Complete outage or data loss | All payments failing, database inaccessible |
+| **P2 – High** | &gt;20% users affected, major feature broken | Login intermittently failing, high error rates |
+| **P3 – Medium** | &lt;20% users affected, minor feature broken | Slow report generation, non-critical API timeout |
+| **P4 – Low** | No user impact | Cosmetic bug, log noise, non-critical alert |
+
+---
+
+## Incident Communication Templates
+
+### #incident-channel Initial Post
+
+```
+🚨 INCIDENT DECLARED: [P1/P2] - [Short Description]
+
+Time: [HH:MM UTC]
+Incident Commander: @[name]
+Status: INVESTIGATING
+
+Symptoms:
+- [What users are experiencing]
+- [Error messages or metrics if known]
+
+Initial Hypothesis:
+- [Your initial guess at root cause]
+
+Next Update: [HH:MM UTC]
+```
+
+### Status Update (every 30 minutes)
+
+```
+📊 INCIDENT UPDATE — [HH:MM UTC]
+
+Status: [INVESTIGATING / IDENTIFIED / MITIGATING / RESOLVED]
+Impact: [Description of current user impact]
+Root Cause: [If identified]
+Actions Taken: [List of steps performed]
+Next Steps: [What happens next]
+ETA to Resolution: [Time estimate or "Unknown"]
+Next Update: [HH:MM UTC]
+```
+
+### Resolution Post
+
+```
+✅ INCIDENT RESOLVED — [HH:MM UTC]
+
+Duration: [Start time] — [End time] ([X] hours [Y] minutes)
+Impact: [Who was affected and how]
+Root Cause: [What caused the incident]
+Resolution: [How it was fixed]
+Follow-up Actions:
+- [ ] [Action item 1] — Owner: @[name]
+- [ ] [Action item 2] — Owner: @[name]
+Post-Mortem: Scheduled for [date]
+```
+
+---
+
+## Common Operational Procedures
+
+### Restart a Service in Kubernetes
+
+```bash
+# Roll out a restart of a deployment
+kubectl rollout restart deployment/payment-service -n core-banking
+
+# Watch the rollout progress
+kubectl rollout status deployment/payment-service -n core-banking
+
+# Check pod status
+kubectl get pods -n core-banking -l app=payment-service
+```
+
+### Scale a Deployment
+
+```bash
+# Scale up a deployment
+kubectl scale deployment/payment-service --replicas=10 -n core-banking
+
+# Check HPA (Horizontal Pod Autoscaler)
+kubectl get hpa -n core-banking
+```
+
+### View Service Logs
+
+```bash
+# Tail logs for a service (last 100 lines)
+kubectl logs -f deployment/payment-service -n core-banking --tail=100
+
+# View logs for a specific pod
+kubectl logs -f pod/payment-service-abc123 -n core-banking
+
+# Filter logs for errors
+kubectl logs deployment/payment-service -n core-banking | grep '"level":"error"'
+```
+
+### Database Emergency Access
+
+Database access in production is restricted. Emergency access requires:
+
+1. Raise P1 incident in PagerDuty
+2. Get approval from Engineering Manager
+3. Request temporary access via `#security-emergency` Slack channel
+4. All queries are logged and audited
+5. Access automatically expires after 2 hours
+
+---
+
+## Runbook Index
+
+| Runbook | Service | Last Updated |
+|---------|---------|-------------|
+| [Payment Service High Error Rate](#) | payment-service | 2025-01-10 |
+| [Database Connection Pool Exhaustion](#) | All services | 2025-01-05 |
+| [EKS Node Group Scaling Issue](#) | Infrastructure | 2024-12-20 |
+| [Redis Cache Eviction Spike](#) | Caching layer | 2024-12-15 |
+| [SSL Certificate Expiry](#) | Infrastructure | 2024-11-30 |
+| [Security Incident Response](#) | Security | 2025-01-20 |
+
+---
+
+## Post-Mortem Process
+
+All P1 incidents and significant P2 incidents require a post-mortem document within 5 business days.
+
+### Post-Mortem Template
+
+1. **Incident Summary** — What happened, when, and impact
+2. **Timeline** — Chronological sequence of events
+3. **Root Cause Analysis** — The underlying cause (use 5-whys technique)
+4. **Contributing Factors** — What made this incident worse or harder to detect
+5. **Resolution** — How the incident was resolved
+6. **Action Items** — Concrete steps to prevent recurrence (with owners and due dates)
+7. **Lessons Learned** — Broader takeaways for the team
+
+**Post-mortems are blameless.** The goal is learning and improvement, not assigning fault.
+
+---
+
+## Related Documents
+
+- [Security Incident Response](/security/overview/)
+- [Infrastructure Overview](/infrastructure/overview/)
+- [Development Overview](/development/overview/)
+- [Release Overview](/release/overview/)

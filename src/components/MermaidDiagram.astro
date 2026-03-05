@@ -1,0 +1,33 @@
+---
+// MermaidDiagram component for rendering mermaid diagrams
+// Usage in MDX: <MermaidDiagram chart={`graph TD\n  A --> B`} />
+interface Props {
+  chart: string;
+}
+const { chart } = Astro.props;
+---
+
+<div class="mermaid-container not-content">
+  <pre class="mermaid">{chart}</pre>
+</div>
+
+<script>
+  import mermaid from 'mermaid';
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',
+    fontFamily: 'inherit',
+  });
+
+  function renderMermaid() {
+    mermaid.run({ querySelector: '.mermaid' });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+</script>

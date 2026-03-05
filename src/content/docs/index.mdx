@@ -1,36 +1,34 @@
 ---
 title: Welcome to a-Library
-description: A comprehensive technical documentation library built with Astro Starlight.
-draft: false
+description: Technical Documentation Library built with AstroJS and Starlight.
 template: splash
 hero:
-  title: Welcome to <span class="text-gradient">a-Library</span>
-  tagline: Your searchable technical documentation library. Find anything instantly.
+  tagline: A technical documentation library built with AstroJS Starlight.
   actions:
     - text: Get Started
-      link: /guides/introduction/
+      link: /a-Library/guides/getting-started/
       icon: right-arrow
-      variant: primary
-    - text: Quick Start
-      link: /guides/quick-start/
-      icon: rocket
+    - text: View on GitHub
+      link: https://github.com/jkulba/a-Library
+      icon: external
+      variant: minimal
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## Explore the Library
+## Features
 
 <CardGrid stagger>
-  <Card title="Getting Started" icon="open-book">
-    New to a-Library? Read the [Introduction](/guides/introduction/) and [Quick Start](/guides/quick-start/) to get up and running fast.
+  <Card title="Documentation" icon="open-book">
+    Comprehensive technical documentation for your projects.
   </Card>
-  <Card title="API Reference" icon="document">
-    Comprehensive [API Reference](/reference/api/) and [Configuration](/reference/configuration/) documentation for developers.
+  <Card title="Fast & Modern" icon="rocket">
+    Built with AstroJS for fast page loads and great developer experience.
   </Card>
-  <Card title="Tutorials" icon="rocket">
-    Step-by-step tutorials: [Build your first app](/tutorials/first-app/) or learn to [work with data](/tutorials/working-with-data/).
+  <Card title="GitHub Pages" icon="github">
+    Automatically deployed to GitHub Pages on every push to the main branch.
   </Card>
-  <Card title="Full-text Search" icon="magnifier">
-    Press <kbd>/</kbd> or <kbd>Ctrl+K</kbd> to instantly search all content using the built-in Pagefind search engine.
+  <Card title="Easy to Contribute" icon="pencil">
+    Work on the develop branch and merge to main to publish updates.
   </Card>
 </CardGrid>

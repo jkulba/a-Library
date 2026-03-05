@@ -1,0 +1,245 @@
+---
+title: Development Overview
+description: Coding standards, branching strategy, CI/CD pipelines, and local development setup for the Software Engineering Group.
+sidebar:
+  order: 1
+---
+
+import MermaidDiagram from '../../../components/MermaidDiagram.astro';
+
+# Development Overview
+
+This section documents the development standards, branching strategy, CI/CD pipeline, and local development practices that all engineers must follow.
+
+## Coding Standards
+
+### General Principles
+
+| Standard | Description |
+|----------|-------------|
+| **Clean Code** | Code is written for the next engineer, not just the computer |
+| **DRY** | Don't Repeat Yourself — extract reusable logic into shared utilities |
+| **SOLID** | Follow SOLID principles for object-oriented design |
+| **Test Coverage** | Minimum 80% unit test coverage on all new code |
+| **Code Review** | All code changes require at least 1 peer review |
+
+### Languages & Runtimes
+
+| Language | Runtime | Linter | Formatter |
+|----------|---------|--------|-----------|
+| TypeScript | Node.js 20 LTS | ESLint | Prettier |
+| Java | OpenJDK 21 LTS | Checkstyle | Google Java Format |
+| Python | 3.12+ | Ruff | Black |
+| Go | 1.22+ | golangci-lint | gofmt |
+
+### Commit Message Convention
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <short description>
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:** `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`
+
+**Examples:**
+```
+feat(payments): add fraud detection scoring to transaction flow
+fix(auth): resolve token refresh race condition under high load
+docs(api): update authentication guide with client credentials flow
+chore(deps): update express to 4.21.2 (CVE-2025-XXXXX)
+```
+
+---
+
+## Branching Strategy
+
+We use **GitHub Flow** with a protected `main` branch and structured feature branches.
+
+### Branch Types
+
+| Branch | Pattern | Purpose | Merge Target |
+|--------|---------|---------|-------------|
+| `main` | `main` | Production-ready code | — |
+| `develop` | `develop` | Integration branch | `main` (via release) |
+| Feature | `feature/JIRA-123-description` | New feature development | `develop` |
+| Bug Fix | `fix/JIRA-456-description` | Bug fixes | `develop` |
+| Hotfix | `hotfix/JIRA-789-description` | Urgent production fixes | `main` + `develop` |
+| Release | `release/v1.2.3` | Release preparation | `main` + `develop` |
+
+### Branch Protection Rules
+
+- `main` branch: Requires 2 approvals, all CI checks passed, no direct pushes
+- `develop` branch: Requires 1 approval, all CI checks passed
+
+---
+
+## CI/CD Pipeline
+
+Our CI/CD pipeline is built on **GitHub Actions** and **ArgoCD**, with automated gates at each stage.
+
+### Pipeline Flow
+
+<MermaidDiagram chart={`
+flowchart LR
+    subgraph Dev["🧑‍💻 Developer"]
+        CODE[Write Code]
+        COMMIT[Git Commit]
+        PR[Open Pull Request]
+    end
+
+    subgraph CI["⚙️ CI Pipeline - GitHub Actions"]
+        LINT[Lint & Format Check]
+        TEST[Unit & Integration Tests]
+        SAST[Security Scan SAST]
+        BUILD[Build Docker Image]
+        SCAN[Container Scan Trivy]
+        PUSH[Push to ECR]
+    end
+
+    subgraph Review["👀 Code Review"]
+        PEER[Peer Review]
+        APPROVE[Approval x1]
+    end
+
+    subgraph CD_Staging["🚀 CD - Staging"]
+        DEPLOY_STG[Deploy to Staging]
+        SMOKE_STG[Smoke Tests]
+        QA[QA Sign-off]
+    end
+
+    subgraph CD_Prod["🏭 CD - Production"]
+        CR[Change Request]
+        CANARY[Canary 5%]
+        MONITOR[Monitor 15min]
+        FULL[Full Rollout]
+    end
+
+    CODE --> COMMIT
+    COMMIT --> PR
+    PR --> LINT
+    LINT -->|Pass| TEST
+    TEST -->|Pass| SAST
+    SAST -->|Pass| BUILD
+    BUILD --> SCAN
+    SCAN -->|Pass| PUSH
+    PUSH --> PEER
+    PEER --> APPROVE
+    APPROVE -->|Merge to develop| DEPLOY_STG
+    DEPLOY_STG --> SMOKE_STG
+    SMOKE_STG -->|Pass| QA
+    QA -->|Approved| CR
+    CR -->|Approved| CANARY
+    CANARY --> MONITOR
+    MONITOR -->|Healthy| FULL
+`} />
+
+### CI Pipeline Jobs
+
+| Job | Tool | Timeout | Blocking |
+|-----|------|---------|---------|
+| Lint & Format | ESLint + Prettier | 5 min | Yes |
+| Unit Tests | Jest / JUnit | 10 min | Yes |
+| Integration Tests | Docker Compose | 15 min | Yes |
+| SAST Scan | SonarQube | 10 min | Critical/High |
+| Dependency Scan | Snyk | 5 min | Critical |
+| Container Build | Docker | 10 min | Yes |
+| Container Scan | Trivy | 5 min | Critical |
+| Push to ECR | Docker | 5 min | Yes |
+
+### GitHub Actions Workflow Structure
+
+```yaml
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npm test -- --coverage
+      - uses: codecov/codecov-action@v4
+```
+
+---
+
+## Pull Request Standards
+
+Every PR must include:
+
+- [ ] Descriptive title following Conventional Commits
+- [ ] Linked Jira ticket
+- [ ] Description of changes and why they were made
+- [ ] Test coverage for new code
+- [ ] Updated documentation if public API changes
+- [ ] No merge conflicts
+
+### PR Review Checklist
+
+Reviewers evaluate:
+- Code correctness and logic
+- Test coverage and quality
+- Security considerations (especially for auth, data handling)
+- Performance implications
+- Adherence to coding standards
+- Documentation updates
+
+---
+
+## Local Development Setup
+
+Refer to the [Getting Started Guide](/getting-started/overview/) for the full setup procedure.
+
+### Quick Start
+
+```bash
+# 1. Clone the repository
+git clone git@github.com:your-org/core-api.git && cd core-api
+
+# 2. Install dependencies
+npm install
+
+# 3. Start local infrastructure
+docker compose up -d
+
+# 4. Copy environment config
+cp .env.example .env.local
+
+# 5. Run database migrations
+npm run db:migrate
+
+# 6. Start the development server
+npm run dev
+```
+
+---
+
+## Related Documents
+
+- [Getting Started](/getting-started/overview/)
+- [Architecture Overview](/architecture/overview/)
+- [Infrastructure Overview](/infrastructure/overview/)
+- [Release Overview](/release/overview/)
